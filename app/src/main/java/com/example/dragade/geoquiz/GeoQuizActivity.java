@@ -2,6 +2,7 @@ package com.example.dragade.geoquiz;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,10 +13,18 @@ import android.widget.Toast;
 
 public class GeoQuizActivity extends ActionBarActivity {
 
+  private static final String TAG = GeoQuizActivity.class.getSimpleName();
+  private static final String KEY_INDEX = "index";
+
   private Button mTrueButton;
   private Button mFalseButton;
-  private Button mNextButton;
-  private Button mPreviousButton;
+
+
+  // can't use Button because landscape layout uses ImageViewButton and the normal layout uses Button
+  private View mNextButton;
+  private View mPreviousButton;
+
+
   private TextView mQuestionTextView;
 
   private TrueFalse[] mQuestionBank = new TrueFalse[] {
@@ -45,9 +54,17 @@ public class GeoQuizActivity extends ActionBarActivity {
     };
   }
 
+  private void restoreState(Bundle savedInstanceState) {
+    if (savedInstanceState != null) {
+      mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
+    }
+  }
+
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    Log.d(TAG, "onCreate ");
     setContentView(R.layout.activity_geo_quiz);
+    restoreState(savedInstanceState);
 
     mQuestionTextView = (TextView) findViewById(R.id.question_text);
     updateQuestionText();
@@ -64,7 +81,7 @@ public class GeoQuizActivity extends ActionBarActivity {
     mFalseButton = (Button) findViewById(R.id.false_button);
     mFalseButton.setOnClickListener(makeCheckAnswerListener(false));
 
-    mNextButton = (Button) findViewById(R.id.next_button);
+    mNextButton = findViewById(R.id.next_button);
     mNextButton.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -72,7 +89,7 @@ public class GeoQuizActivity extends ActionBarActivity {
       }
     });
 
-    mPreviousButton = (Button) findViewById(R.id.previous_button);
+    mPreviousButton = findViewById(R.id.previous_button);
     mPreviousButton.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -80,6 +97,44 @@ public class GeoQuizActivity extends ActionBarActivity {
       }
     });
   }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    Log.d(TAG, "onDestroy() called");
+  }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    Log.d(TAG, "onPause() called");
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    Log.d(TAG, "onResume() called");
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+    Log.i(TAG, "onSaveInstanceState");
+    outState.putInt(KEY_INDEX, mCurrentIndex);
+  }
+
+  @Override
+  protected void onStop() {
+    super.onStop();
+    Log.d(TAG, "onStop() called");
+  }
+
+  @Override
+  protected void onStart() {
+    super.onStart();
+    Log.d(TAG, "onStart() called");
+  }
+
 
   private void nextQuestion() {
     mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
