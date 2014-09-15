@@ -1,5 +1,6 @@
 package com.example.dragade.geoquiz;
 
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,6 +25,7 @@ public class GeoQuizActivity extends ActionBarActivity {
   private View mNextButton;
   private View mPreviousButton;
 
+  private Button mCheatButton;
 
   private TextView mQuestionTextView;
 
@@ -36,6 +38,7 @@ public class GeoQuizActivity extends ActionBarActivity {
   };
 
   private int mCurrentIndex = 0; //first call to nextQuestion will set to 0
+  private boolean mIsCheater = false;
 
   private View.OnClickListener makeCheckAnswerListener(final boolean expectTrue) {
     return new View.OnClickListener(){
@@ -43,7 +46,10 @@ public class GeoQuizActivity extends ActionBarActivity {
       public void onClick(View v) {
         TrueFalse question = mQuestionBank[mCurrentIndex];
         int toast_id;
-        if (question.isTrueQuestion() && expectTrue || !question.isTrueQuestion() && !expectTrue) {
+        if (mIsCheater) {
+          toast_id = R.string.judgment_toast;
+        }
+        else if (question.isTrueQuestion() && expectTrue || !question.isTrueQuestion() && !expectTrue) {
           toast_id = R.string.toast_correct;
         } else {
           toast_id = R.string.toast_incorrect;
@@ -96,6 +102,18 @@ public class GeoQuizActivity extends ActionBarActivity {
         previousQuestion();
       }
     });
+
+    mCheatButton = (Button)findViewById(R.id.cheat_button);
+    mCheatButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        Intent i = new Intent(GeoQuizActivity.this, CheatActivity.class);
+        boolean answerIsTrue = mQuestionBank[mCurrentIndex].isTrueQuestion();
+        i.putExtra(CheatActivity.EXTRA_ANSWER_IS_TRUE, answerIsTrue);
+        startActivityForResult(i, 0);
+      }
+    });
+
   }
 
   @Override
@@ -154,6 +172,7 @@ public class GeoQuizActivity extends ActionBarActivity {
   private void updateQuestionText() {
     int questionTextId = mQuestionBank[mCurrentIndex].getQuestion();
     mQuestionTextView.setText(questionTextId);
+    mIsCheater = false;
   }
 
 
@@ -175,4 +194,13 @@ public class GeoQuizActivity extends ActionBarActivity {
     }
     return super.onOptionsItemSelected(item);
   }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (data == null) {
+      return;
+    }
+    mIsCheater = data.getBooleanExtra(CheatActivity.EXTRA_ANSWER_SHOWN, false);
+  }
+
 }
