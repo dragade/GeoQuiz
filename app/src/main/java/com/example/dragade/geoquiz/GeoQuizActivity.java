@@ -1,7 +1,9 @@
 package com.example.dragade.geoquiz;
 
+import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -11,12 +13,16 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-public class GeoQuizActivity extends ActionBarActivity {
+public class GeoQuizActivity extends Activity {
 
   private static final String TAG = GeoQuizActivity.class.getSimpleName();
   private static final String KEY_CURRENT_INDEX = "currentIndex";
-  private static final String KEY_IS_CHEATER = "isCheater";
+  private static final String KEY_QUESTIONS_CHEATED_ON = "questionsCheatedOn";
 
   private Button mTrueButton;
   private Button mFalseButton;
@@ -40,13 +46,20 @@ public class GeoQuizActivity extends ActionBarActivity {
 
   // The state to keep track of
   private int mCurrentIndex = 0; //first call to nextQuestion will set to 0
-  private Boolean mIsCheater = null;
+  private Set<Integer> mQuestionsCheatedOn = new HashSet<Integer>(); //indices of questions that were cheated on
 
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     Log.d(TAG, "onCreate ");
     setContentView(R.layout.activity_geo_quiz);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+      ActionBar actionBar = getActionBar();
+      actionBar.setSubtitle("Bodies of Water");
+    }
+
     restoreState(savedInstanceState);
+
 
     mQuestionTextView = (TextView) findViewById(R.id.question_text);
     mQuestionTextView.setText(mQuestionBank[mCurrentIndex].getQuestion());
@@ -98,7 +111,7 @@ public class GeoQuizActivity extends ActionBarActivity {
       public void onClick(View v) {
         TrueFalse question = mQuestionBank[mCurrentIndex];
         int toast_id;
-        if (mIsCheater) {
+        if (mQuestionsCheatedOn.contains(mCurrentIndex)) {
           toast_id = R.string.judgment_toast;
         }
         else if (question.isTrueQuestion() && expectTrue || !question.isTrueQuestion() && !expectTrue) {
@@ -115,8 +128,11 @@ public class GeoQuizActivity extends ActionBarActivity {
   private void restoreState(Bundle savedInstanceState) {
     if (savedInstanceState != null) {
       mCurrentIndex = savedInstanceState.getInt(KEY_CURRENT_INDEX, 0);
-      mIsCheater = savedInstanceState.getBoolean(KEY_IS_CHEATER, false);
-      Log.d(TAG, "restoreState index=" + mCurrentIndex + " cheater=" + mIsCheater);
+      if (savedInstanceState.keySet().contains(KEY_QUESTIONS_CHEATED_ON)) {
+        List<Integer> savedIntegerList = (List<Integer>) savedInstanceState.get(KEY_QUESTIONS_CHEATED_ON);
+        mQuestionsCheatedOn =  new HashSet<Integer>(savedIntegerList);
+      }
+      Log.d(TAG, "restoreState index=" + mCurrentIndex + " questionsCheatedOn=" + mQuestionsCheatedOn);
     }
   }
 
@@ -141,9 +157,12 @@ public class GeoQuizActivity extends ActionBarActivity {
   @Override
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
-    Log.d(TAG, "onSaveInstanceState index=" + mCurrentIndex + " cheater=" + mIsCheater);
+    Log.d(TAG, "onSaveInstanceState index=" + mCurrentIndex + " questionsCheatedOn=" + mQuestionsCheatedOn);
     outState.putInt(KEY_CURRENT_INDEX, mCurrentIndex);
-    outState.putBoolean(KEY_IS_CHEATER, mIsCheater);
+    if (!mQuestionsCheatedOn.isEmpty()) {
+      ArrayList<Integer> integerListToSave = new ArrayList<Integer>(mQuestionsCheatedOn);
+      outState.putIntegerArrayList(KEY_QUESTIONS_CHEATED_ON, integerListToSave);
+    }
   }
 
   @Override
@@ -176,7 +195,6 @@ public class GeoQuizActivity extends ActionBarActivity {
   private void updateQuestionText() {
     int questionTextId = mQuestionBank[mCurrentIndex].getQuestion();
     mQuestionTextView.setText(questionTextId);
-    mIsCheater = false;
   }
 
   @Override
@@ -201,7 +219,10 @@ public class GeoQuizActivity extends ActionBarActivity {
   @Override
   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     if (data != null && resultCode == RESULT_OK) {
-      mIsCheater = data.getBooleanExtra(CheatActivity.EXTRA_ANSWER_SHOWN, false);
+      boolean cheated = data.getBooleanExtra(CheatActivity.EXTRA_ANSWER_SHOWN, false);
+      if (cheated) {
+        mQuestionsCheatedOn.add(mCurrentIndex);
+      }
     }
   }
 
